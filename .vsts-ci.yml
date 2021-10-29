@@ -40,7 +40,7 @@ stages:
   jobs:
   - template: /eng/common/templates/jobs/jobs.yml
     parameters:
-      enableMicrobuild: true
+      enableMicrobuild: false
       enablePublishBuildArtifacts: true
       enablePublishBuildAssets: true
       enablePublishUsingPipelines: ${{ variables._PublishUsingPipelines }}
@@ -55,31 +55,10 @@ stages:
         pool:
           # For public or PR jobs, use the hosted pool.  For internal jobs use the internal pool.
           # Will eventually change this to two BYOC pools.
-          ${{ if or(eq(variables['System.TeamProject'], 'public'), in(variables['Build.Reason'], 'PullRequest')) }}:
-            name: Hosted VS2017
-          ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
-            name: NetCore1ESPool-Internal
-            demands: ImageOverride -equals build.windows.10.amd64.vs2017
+          name: Hosted VS2017
         variables:
         - HelixApiAccessToken: ''
         - _InternalBuildArgs: ''
-
-        # Only enable publishing in non-public, non PR scenarios.
-        - ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
-          # DotNet-Blob-Feed provides: dotnetfeed-storage-access-key-1
-          # Publish-Build-Assets provides: MaestroAccessToken, BotAccount-dotnet-maestro-bot-PAT
-          # DotNet-HelixApi-Access provides: HelixApiAccessToken
-          - group: DotNet-Blob-Feed
-          - group: Publish-Build-Assets
-          - group: DotNet-HelixApi-Access
-          - _PublishBlobFeedUrl: https://dotnetfeed.blob.core.windows.net/dotnet-iot/index.json
-          - _InternalBuildArgs: /p:DotNetSignType=$(_SignType) /p:TeamName=$(_TeamName)
-              /p:DotNetPublishToBlobFeed=$(_DotNetPublishToBlobFeed)
-              /p:DotNetPublishBlobFeedKey=$(dotnetfeed-storage-access-key-1)
-              /p:DotNetPublishBlobFeedUrl=$(_PublishBlobFeedUrl)
-              /p:DotNetPublishUsingPipelines=$(_PublishUsingPipelines)
-              /p:DotNetArtifactsCategory=$(_DotNetArtifactsCategory)
-              /p:OfficialBuildId=$(BUILD.BUILDNUMBER)
 
         strategy:
           matrix:
@@ -135,8 +114,6 @@ stages:
           vmImage: 'ubuntu-latest'
         variables:
         - HelixApiAccessToken: ''
-        - ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
-          - group: DotNet-HelixApi-Access
         strategy:
           matrix:
             ${{ if or(eq(variables['System.TeamProject'], 'public'), in(variables['Build.Reason'], 'PullRequest')) }}:
